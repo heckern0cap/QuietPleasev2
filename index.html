@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiet Please!</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+      text-align: center;
+    }
+
+    header {
+      background: #222;
+      color: white;
+      padding: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2.5em;
+    }
+
+    #volume {
+      font-size: 5em;
+      margin: 40px 0 10px;
+    }
+
+    #bar {
+      width: 60%;
+      height: 30px;
+      margin: 20px auto;
+      background: #ccc;
+      border-radius: 15px;
+      overflow: hidden;
+    }
+
+    #bar-fill {
+      height: 100%;
+      width: 0%;
+      background: green;
+      transition: width 0.1s ease;
+    }
+
+    .comparison {
+      margin-top: 40px;
+    }
+
+    .item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 15px 0;
+    }
+
+    .item img {
+      width: 50px;
+      height: 50px;
+      margin-right: 15px;
+    }
+
+    .item span {
+      font-size: 1.1em;
+      font-weight: bold;
+    }
+
+    footer {
+      margin-top: 60px;
+      font-size: 0.9em;
+      color: #777;
+      padding-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Quiet Please!</h1>
+  </header>
+
+  <div id="volume">0 dB</div>
+  <div id="bar">
+    <div id="bar-fill"></div>
+  </div>
+
+  <div class="comparison">
+    <h2>Sound Level Comparison</h2>
+
+    <div class="item">
+      <img src="https://heckern0cap.github.io/test.png" alt="Whisper">
+      <span>30 dB – Whisper</span>
+    </div>
+
+    <div class="item">
+      <img src="https://cdn-icons-png.flaticon.com/512/3064/3064197.png" alt="Conversation">
+      <span>60 dB – Normal Conversation</span>
+    </div>
+
+    <div class="item">
+      <img src="https://cdn-icons-png.flaticon.com/512/2933/2933887.png" alt="Traffic">
+      <span>90 dB – Heavy Traffic</span>
+    </div>
+
+    <div class="item">
+      <img src="https://cdn-icons-png.flaticon.com/512/1510/1510632.png" alt="Thunder">
+      <span>110 dB – Thunder</span>
+    </div>
+
+    <div class="item">
+      <img src="https://cdn-icons-png.flaticon.com/512/184/184520.png" alt="Jet Plane">
+      <span>130 dB – Jet Plane</span>
+    </div>
+  </div>
+
+  <footer>
+    Quiet Please!
+  </footer>
+
+  <script>
+    const volumeDisplay = document.getElementById("volume");
+    const barFill = document.getElementById("bar-fill");
+
+    async function startMic() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      source.connect(analyser);
+
+      function getFakeDecibels(rms) {
+        return Math.min(Math.round(rms * 100 + 30), 130); // Fake mapping
+      }
+
+      function update() {
+        analyser.getByteTimeDomainData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          const val = (dataArray[i] - 128) / 128;
+          sum += val * val;
+        }
+        const rms = Math.sqrt(sum / bufferLength);
+        const db = getFakeDecibels(rms);
+
+        volumeDisplay.textContent = `${db} dB`;
+
+        // Set bar width and color
+        const percent = (db / 130) * 100;
+        barFill.style.width = percent + "%";
+        if (db < 50) barFill.style.background = "green";
+        else if (db < 80) barFill.style.background = "orange";
+        else barFill.style.background = "red";
+
+        requestAnimationFrame(update);
+      }
+
+      update();
+    }
+
+    startMic().catch(err => {
+      alert("Microphone access denied or error occurred.");
+      console.error(err);
+    });
+  </script>
+
+</body>
+</html>
